@@ -40,7 +40,7 @@ Parâmetros de entrada
         Ponto fixo que será calculado a aproximação
         Idealmente é próximo de x e é conhecida as derivadas no ponto
 
-    derivatives : Array{Number}
+    derivatives : Vector{Number}
         Vetor com informações das derivadas no ponto a: f(a), f'(a), f''(a) ...
 
     M: Number
@@ -67,8 +67,7 @@ Exceções
         cálculo, levanta exeção de domínio
 
 """
-
-function value_approximation(x::Number, a::Number, derivatives::Array{Number}, M::Number, n::Int64=2)
+function value_approximation(x::Number, a::Number, derivatives::Vector{Number}, M::Number, n::Int64=2)
     factor = 1
     error = (x-a)^factor/factor
     
