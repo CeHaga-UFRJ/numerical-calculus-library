@@ -301,7 +301,6 @@ Retorna um aviso caso o intervalo passado pelo usuário não possua sinais troca
 
 Especificação
 ------------------------------
-
 f(r)=0 e |x-r| <= erro
 
 
@@ -367,7 +366,6 @@ Encontrar zero de função (raiz) para calcular aproximação de valores numéri
 
 Especificação
 ------------------------------
-
 f(r)=0
 
 Parâmetros
@@ -411,11 +409,11 @@ end
 
 @doc raw"""
 Objetivo
-----------
+------------------------------
 Monta uma matriz de Vandermonde de dado grau
 
 Parâmetros
-----------
+------------------------------
     x: Vector{Number}
         Vetor usado como base
     qtd_rows: Number
@@ -424,7 +422,7 @@ Parâmetros
         Grau do polinomio
 
 Retorno
-----------
+------------------------------
     Retorno: Matriz de Vandermonde
 """
 function vandermonde(x::Vector, qtd_rows::Number, degree::Number) 
@@ -445,7 +443,7 @@ function vandermonde_interpolation(x::Vector, y::Vector, degree::Number)
     
     V = vandermonde(x, qtd_rows, degree)
 
-    c = V \ y #resolve_sistema(V, y) FIXME: quando utilizo o resolve_sistema meu exemplo 2 não funciona
+    c = resolve_sistema(V, y)
     
     f(x) = sum(c[n+1]*x^n for n in 0:degree)
     
@@ -454,31 +452,32 @@ end
 
 @doc raw"""
 Objetivo
-----------
+------------------------------
 Transforma um conjunto de pontos discretos em uma função contínua.
 
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i)=y_i
+
 Parâmetros
-----------
+------------------------------
     points : Vector{Tuple{Number, Number}}
         Vetor com coordenadas (x,y)
-
-    degree : Number, optional
-        Grau da interpolação
 
     method: Symbol, optional
         Nome do método utilizado para a interpolação
 
 Retorno
-----------
+------------------------------
     function : function
-        Retorna uma função
+        Retorna um polinômio com grau no máximo n-1 (tamanho do vetor de pontos - 1)
 
 """
-function interpolation(points::Vector, degree::Number=0, method::Symbol=:vandermond)
+function interpolation(points::Vector, method::Symbol=:vandermond)
     
-    if degree == 0
-        degree, = size(points)
-    end
+    size_points, = size(points)
+    
+    degree = size_points - 1
     
     x = zeros(0)
     y = zeros(0)
