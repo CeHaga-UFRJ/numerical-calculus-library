@@ -494,6 +494,57 @@ function interpolation(points::Vector, method::Symbol=:vandermond)
 
 end
 
+# vandermond foi definida no passo 3
+
+@doc raw"""
+Objetivo
+------------------------------
+Realizar a regressão com coeficientes lineares
+
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+
+Parâmetros
+------------------------------
+    points : Vector{Float64}
+        Vetor com coordenadas (x,y)
+
+    degree : Int64
+        Grau da interpolação
+
+    functions: Vector{function}, optional
+        Caso esse vetor for passado, será calculado a regressão generalizada
+
+Retorno
+------------------------------
+    function : function
+        Retorna uma função 
+
+"""
+function linear_regression(points::Vector, degree::Int64, functions=nothing)
+    
+    x = zeros(0)
+    y = zeros(0)
+    
+    for point in points
+        push!(x, point[1])
+        push!(y, point[2])
+    end
+    
+    qtd_rows = length(y)
+    
+    V = vandermonde(x,qtd_rows,degree)
+    
+    c = minimos_quadrados(V,y)
+    
+    if functions == nothing
+        return lr(x) = sum(c[n+1]*x^n for n in 0:degree) # linear regression
+    else
+        return lrg(x) = sum(c[n+1]*functions[n+1](x) for n in 0:degree) # linear regression generalized
+    end
+end
+
 
 
 #============================== Fim Funções de 2 a 8 ===========================#
