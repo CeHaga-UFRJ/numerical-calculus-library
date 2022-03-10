@@ -494,7 +494,7 @@ function interpolation(points::Vector, method::Symbol=:vandermond)
 
 end
 
-# vandermond foi definida no passo 3
+## 5 e 6. Problema: Regressão
 
 @doc raw"""
 Objetivo
@@ -543,6 +543,54 @@ function linear_regression(points::Vector, degree::Int64, functions=nothing)
     else
         return lrg(x) = sum(c[n+1]*functions[n+1](x) for n in 0:degree) # linear regression generalized
     end
+end
+
+## TODO: fazer problema 7
+
+
+
+
+
+
+
+## 8. Problema: Interpolação 2D
+
+@doc raw"""
+Objetivo
+------------------------------
+Realiza a interpolacao 2D (bilinear) dado 4 pontos e suas respectivas alturas
+
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i,y_j)=zij
+
+Parâmetros
+------------------------------
+    points : Vector{Float64}
+        Vetor com coordenadas (x,y)
+
+    z : Vector{Float64}
+        Vetor com alturas 
+
+Retorno
+------------------------------
+    function : function
+        Retorna uma função de grau dois de duas variáveis
+
+"""
+function interpolation_2d(points::Vector, z::Vector)
+    x1, x2, y1, y2 = points
+    
+    f(x, y) = (z[1]*(x2 - x)*(y2 - y) + z[2]*(x2 - x)*(y - y1) + z[3]*(x - x1)*(y2 - y) + z[4]*(x - x1)*(y - y1))/((x2 - x1)*(y2 - y1))
+    
+    # Modelo do polinômio: a + bx + cy + dxy
+    a = f(0, 0) # = a + 0 + 0 + 0
+    b = f(1, 0) - a # = a + b + 0 + 0
+    c = f(0, 1) - a # = a + 0 + c + 0
+    d = f(1, 1) - a - b - c # = a + b + c + d
+    
+    return lagrange_2d(x,y) = a + bx + cy + dxy
+    
 end
 
 
