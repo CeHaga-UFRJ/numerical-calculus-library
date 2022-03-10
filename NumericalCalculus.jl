@@ -311,19 +311,12 @@ Parâmetros
 
     a : Number
         Início do intervalo
-        Obrigatório caso o método seja Bisseção
 
     b : Number
         Fim do intervalo
-        Obrigatório caso o método seja Bisseção
 
     error: Number
         Erro no domínio
-        Obrigatório caso o método seja Bisseção
-
-    method: String, optional
-        Método que será aplicado a aproximação da raiz da função (:bisecion ou :newton)
-        Caso nenhum método seja escolhido o padrão é o da Bisseção
 
 
 Retorno
