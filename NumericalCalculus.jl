@@ -332,12 +332,190 @@ function linear_regression(points::Vector, degree::Int64, functions=nothing)
     end
 end
 
-## TODO: fazer problema 7
+
+## 7. Problema: Regressão com coeficientes não lineares
 
 
+# 7.1 Exponencial
+
+@doc raw"""
+Objetivo
+------------------------------
+Realizar a regressão com coeficientes não lineares do modelo exponencial
+
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Calculada com a linearização da forma ln(y) = ln(c1) + c2*x
+
+Parâmetros
+------------------------------
+    points : Vector{Float64}
+        Vetor com coordenadas (x,y)
+
+Retorno
+------------------------------
+    function : function
+        Retorna uma função com o modelo da forma y = c1*e^(c2*x)
+
+"""
+function exponential_regression(points::Vector)
+    # modelo: y = c1*e^(c2*x)
+    # linearização: ln(y) = ln(c1) + c2*x
+    
+    # Etapa 1: converte o vetor de coordenadas em dois vetores de x e y
+    
+    x = zeros(0)
+    y = zeros(0)
+    
+    for point in points
+        push!(x, point[1])
+        push!(y, point[2])
+    end
+    
+    # Etapa 2: troca de variável (linearização)
+    
+    x_barra=x
+    y_barra=log.(y)
+    
+    # Etapa 3: regressão linear com grau 1
+    
+    qtd_rows = length(y)
+    V = vandermonde(x_barra,qtd_rows,1)
+    
+    c_barra= V\y_barra # TODO: trocar
+    
+    # Etapa 4: troca de variável (modelo)
+
+    c1=exp(c_barra[1])
+    c2=c_barra[2]
+    
+    modelo(x) = c1*exp(c2*x)
+    
+    return modelo
+    
+end
+
+# 7.2 Potência
+
+@doc raw"""
+Objetivo
+------------------------------
+Realizar a regressão com coeficientes não lineares do modelo de potência
+
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Calculada com a linearização da forma ln(y) = ln(c1) + c2*ln(x)
+
+Parâmetros
+------------------------------
+    points : Vector{Float64}
+        Vetor com coordenadas (x,y)
+
+Retorno
+------------------------------
+    function : function
+        Retorna uma função com o modelo da forma y = c1*x^(c2)
+
+"""
+function potency_regression(points::Vector)
+    # modelo: y = c1*x^(c2)
+    # linearização: ln(y) = ln(c1) + c2*ln(x)
+    
+    # Etapa 1: converte o vetor de coordenadas em dois vetores de x e y
+    
+    x = zeros(0)
+    y = zeros(0)
+    
+    for point in points
+        push!(x, point[1])
+        push!(y, point[2])
+    end
+    
+    # Etapa 2: troca de variável (linearização)
+    
+    x_barra=log.(x)
+    y_barra=log.(y)
+    
+    # Etapa 3: regressão linear com grau 1
+    
+    qtd_rows = length(y)
+    V = vandermonde(x_barra,qtd_rows,1)
+    
+    c_barra= V\y_barra # TODO: trocar
+    
+    # Etapa 4: troca de variável (modelo)
+
+    c1=exp(c_barra[1])
+    c2=c_barra[2]
+    
+    modelo(x) = c1*(x^c2)
+    
+    return modelo
+    
+end
 
 
+# 7.3 Geométrico
 
+@doc raw"""
+Objetivo
+------------------------------
+Realizar a regressão com coeficientes não lineares do modelo geométrico
+
+Especificação
+------------------------------
+Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Calculada com a linearização da forma 1/y = c1 + c2*x
+
+Parâmetros
+------------------------------
+    points : Vector{Float64}
+        Vetor com coordenadas (x,y)
+
+Retorno
+------------------------------
+    function : function
+        Retorna uma função com o modelo da forma y = 1/(c1 + c2*x)
+
+"""
+function geometric_regression(points::Vector)
+    # modelo: y = 1/(c1 + c2*x)
+    # linearização: 1/y = c1 + c2*x
+    
+    # Etapa 1: converte o vetor de coordenadas em dois vetores de x e y
+    
+    x = zeros(0)
+    y = zeros(0)
+    
+    for point in points
+        push!(x, point[1])
+        push!(y, point[2])
+    end
+    
+    # Etapa 2: troca de variável (linearização)
+    
+    x_barra=x
+    y_barra=1/y
+    
+    # Etapa 3: regressão linear com grau 1
+    
+    qtd_rows = length(y)
+    V = vandermonde(x_barra,qtd_rows,1)
+    
+    c_barra= V\y_barra # TODO: trocar
+    
+    # Etapa 4: troca de variável (modelo)
+
+    c1=c_barra[1]
+    c2=c_barra[2]
+    
+    modelo(x) = 1/(c1 + c2*x)
+    
+    return modelo
+    
+end
 
 
 ## 8. Problema: Interpolação 2D
