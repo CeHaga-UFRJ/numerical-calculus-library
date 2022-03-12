@@ -806,7 +806,7 @@ Retorno
         Matriz triangular inferior
 
     U : Matrix{Float64}
-    Matriz triangular superior
+        Matriz triangular superior
 
 """
 function lu_decomposition(A::Matrix{Number})::Tuple{Matrix{Float64},Matrix{Float64}}
@@ -835,11 +835,11 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Resolve um Problema de Valores no Contorno dado y'' = c[1] + c[2]y + c[3]y', y(xi) = yi e y(xf) = yf
+Resolve um Problema de Valores no Contorno dado ``y'' = c[1] + c[2]y + c[3]y', y(xi) = yi e y(xf) = yf``
 
 Especificação
 ------------------------------
-y(x_i) ≈ ybetween[i]
+``y(x_i) ≈ y\_between[i]``
 
 Parâmetros
 ------------------------------
@@ -911,7 +911,36 @@ end
 
 ## 18, 19 & 20. Problema: Integração Numérica
 
+@doc raw"""
+Objetivo
+------------------------------
+Realiza a integral numérica 
 
+Especificação
+------------------------------
+``S \approx \int_a^b f(x)dx``
+
+Parâmetros
+------------------------------
+    f : Function
+        Função a ser derivada
+        
+    a : Number
+        Limite inferior da integral
+
+    b : Number
+        Limite superior da integral
+
+    n : Number
+        Número de divisões
+        
+
+Retorno
+------------------------------
+    S : Float64
+        Aproximação da integral
+
+"""
 function numerical_integration(f::Function, a::Number, b::Number, n::Int64 = 1000)::Float64
     # Calcula distancia entre cada ponto
     h = (b-a)/n
@@ -930,10 +959,22 @@ function numerical_integration(f::Function, a::Number, b::Number, n::Int64 = 100
     return S
 end
 
-
+@doc raw"""
+teste2
+"""
 function numerical_integration(f::Function, a::Number, b::Number, error::Number, M::Number)::Float64
     n = ceil(sqrt((M * (b-a)^3) / (12 * error)))
     return numerical_integration(f, a, b, n)
+end
+
+function numerical_integration(f::Function, g::Function, h::Function, a::Number, b::Number, n::Int64)::Float64
+    # Calcula a integral para um y especifico
+    function outer_integral(y)
+        return numerical_integration(x -> f(x,y), h(y), g(y), n)
+    end
+    
+    # Calcula a integral para cada y
+    return numerical_integration(outer_integral, a, b)
 end
 
 
@@ -965,3 +1006,27 @@ end
 
 ## 22. Derivada Numérica com uma função discreta
 
+function discrete_derivative(f, x, degree, option = :center)
+    n = length(f)
+    fy = copy(f)
+    for k = 1:degree
+        y = zeros(n)
+        
+        # Nas pontas so tem uma opcao
+        y[1] = (fy[2] - fy[1])/(x[2] - x[1])
+        y[n] = (fy[n] - fy[n-1])/(x[n] - x[n-1])
+        
+        # No meio e escolha do usuario
+        for i = 2:n-1
+            deriv = 0
+            if(option == :front) deriv = (fy[i+1] - fy[i])/(x[i+1] - x[i]) end
+            if(option == :back) deriv = (fy[i] - fy[i-1])/(x[i] - x[i-1]) end
+            if(option == :center) deriv = (fy[i+1] - fy[i-1])/(x[i+1] - x[i-1]) end
+            y[i] = deriv
+        end
+        
+        fy = copy(y)
+    end
+    
+    return fy
+end
