@@ -249,7 +249,7 @@ Para todo 1<=i<=n, F(x_i)=y_i
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y)
+        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
     method: Symbol, optional
         Nome do método utilizado para a interpolação
@@ -294,8 +294,8 @@ Para todo 1<=i<=n, F(x_i) aproximadamente y_i
 
 Parâmetros
 ------------------------------
-    points : Vector{Float64}
-        Vetor com coordenadas (x,y)
+    points : Vector{Tuple{Number, Number}}
+        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
     degree : Int64
         Grau da interpolação
@@ -306,7 +306,7 @@ Parâmetros
 Retorno
 ------------------------------
     function : function
-        Retorna uma função 
+        Retorna uma função no seu formato linear tradicional ou generalizada (com multiplifcação de funções)
 
 """
 function linear_regression(points::Vector, degree::Int64, functions=nothing)
@@ -350,8 +350,8 @@ Calculada com a linearização da forma ln(y) = ln(c1) + c2*x
 
 Parâmetros
 ------------------------------
-    points : Vector{Float64}
-        Vetor com coordenadas (x,y)
+    points : Vector{Tuple{Number, Number}}
+        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
 Retorno
 ------------------------------
@@ -410,8 +410,8 @@ Calculada com a linearização da forma ln(y) = ln(c1) + c2*ln(x)
 
 Parâmetros
 ------------------------------
-    points : Vector{Float64}
-        Vetor com coordenadas (x,y)
+    points : Vector{Tuple{Number, Number}}
+        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
 Retorno
 ------------------------------
@@ -471,8 +471,8 @@ Calculada com a linearização da forma 1/y = c1 + c2*x
 
 Parâmetros
 ------------------------------
-    points : Vector{Float64}
-        Vetor com coordenadas (x,y)
+    points : Vector{Tuple{Number, Number}}
+        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
 Retorno
 ------------------------------
@@ -525,7 +525,7 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realiza a interpolacao 2D (bilinear) dado 4 pontos e suas respectivas alturas
+Realiza a interpolacao 2D (bilinear) dado 4 pontos geométricos e suas respectivas alturas
 
 Especificação
 ------------------------------
@@ -533,8 +533,8 @@ Para todo 1<=i<=n, F(x_i,y_j)=zij
 
 Parâmetros
 ------------------------------
-    points : Vector{Float64}
-        Vetor com coordenadas (x,y)
+    points : Vector{Tuple{Number, Number}}
+        Vetor com 2 coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
 
     z : Vector{Float64}
         Vetor com alturas 
@@ -546,7 +546,16 @@ Retorno
 
 """
 function interpolation_2d(points::Vector, z::Vector)
-    x1, x2, y1, y2 = points
+    x = zeros(0)
+    y = zeros(0)
+    
+    for point in points
+        push!(x, point[1])
+        push!(y, point[2])
+    end
+    
+    x1, x2 = x
+    y1, y2 = y
     
     f(x, y) = (z[1]*(x2 - x)*(y2 - y) + z[2]*(x2 - x)*(y - y1) + z[3]*(x - x1)*(y2 - y) + z[4]*(x - x1)*(y - y1))/((x2 - x1)*(y2 - y1))
     
@@ -556,7 +565,7 @@ function interpolation_2d(points::Vector, z::Vector)
     c = f(0, 1) - a # = a + 0 + c + 0
     d = f(1, 1) - a - b - c # = a + b + c + d
     
-    return lagrange_2d(x,y) = a + bx + cy + dxy
+    return lagrange_2d(x,y) = a + b*x + c*y + d*x*y
     
 end
 
