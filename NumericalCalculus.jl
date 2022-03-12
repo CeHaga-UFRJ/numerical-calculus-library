@@ -497,7 +497,9 @@ function geometric_regression(points::Vector)
     # Etapa 2: troca de variável (linearização)
     
     x_barra=x
-    y_barra=1/y
+    
+    temp_y(x) = 1/x
+    y_barra=temp_y.(y)
     
     # Etapa 3: regressão linear com grau 1
     
