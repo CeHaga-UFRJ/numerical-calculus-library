@@ -4,21 +4,6 @@
 
 using LinearAlgebra
 
-#=
-Essa funcao eh uma funcao de teste e serve para mostrar como montar uma funcao
-
-x: O que seu coracao mandar
-
-Retorno: A funcao sempre vai retornar 42
-=#
-function teste(x)
-    return 42
-end 
-
-
-
-#============================== Funções dos problemas de 2 a 8 ===========================#
-
 ## 2. Problema: Achar um valor aproximado de uma função com informações de derivadas
 
 @doc raw"""
@@ -569,11 +554,6 @@ function interpolation_2d(points::Vector, z::Vector)
     
 end
 
-
-
-#============================== Fim Funções de 2 a 8 ===========================#
-
-
 ## 9. Calcular a norma de um vetor v
 
 @doc raw"""
@@ -804,15 +784,160 @@ function inverse_LU(A::Matrix{Float64})
     return inv_A
 end
 
+## 16. Problema: Decomposição LU
 
+@doc raw"""
+Objetivo
+------------------------------
+Realizar a decomposição LU
 
+Especificação
+------------------------------
+A = LU
 
-#=
+Parâmetros
+------------------------------
+    A : Matrix{Number}
+        Matriz no formato (n,n)
 
-function numerical_integration(f, a, b, n=1, error=nothing, M=nothing)
-    if(any(error, M))
+Retorno
+------------------------------
+    L : Matrix{Float64}
+        Matriz triangular inferior
+
+    U : Matrix{Float64}
+    Matriz triangular superior
+
+"""
+function lu_decomposition(A::Matrix{Number})::Tuple{Matrix{Float64},Matrix{Float64}}
+    # Podemos salvar apenas um tamanho pois sao o mesmo
+    n, = size(A)
+
+    # U comeca como uma copia de A, enquanto L comeca como uma matriz identidade
+    U = copy(Float64.(A))
+    L = Matrix(1.0I, n, n)
+
+    for i = 1:n
+        for j = i+1:n
+            # Eh calculado o coeficiente dividindo o numero da matriz pelo pivot
+            l = U[j,i] / U[i,i]
+            # O coeficiente eh o elemento de L
+            L[j,i] = l
+            # E o coeficiente eh usado para alterar a linha de U
+            U[j,:] -= l * U[i,:]
+        end
+    end
+    return L, U
 end
-=#
+
+## 17. Problema: PVC
+
+@doc raw"""
+Objetivo
+------------------------------
+Resolve um Problema de Valores no Contorno dado y'' = c[1] + c[2]y + c[3]y', y(xi) = yi e y(xf) = yf
+
+Especificação
+------------------------------
+y(x_i) ≈ ybetween[i]
+
+Parâmetros
+------------------------------
+    coeff : Vector{Number}
+        Coeficientes da segunda derivada
+        
+    xi : Number
+        Ponto inicial conhecido
+
+    xf : Number
+        Ponto final conhecido
+
+    yi : Number
+        Valor da função no ponto inicial
+
+    yf : Number
+        Valor da função no ponto final
+
+    n : Int64
+        Quantidade de pontos no meio a ser encontrados
+        
+
+Retorno
+------------------------------
+    y_between : Vector{Float64}
+        Vetor de pontos internos entre xi e xf
+
+"""
+function generic_bvp(coeff::Vector{Number}, xi::Number, xf::Number, yi::Number, yf::Number, n::Int64)::Vector{Float64}
+    # Calcula o tamanho do intervalo
+    h = (xf - xi)/(n-1)
+    
+    A = generic_bvp_matrix(n-2, coeff[2], coeff[3], h) 
+    b = zeros(n-2)
+    
+    # Cada equação vai possuir esse termo
+    for i = 1:n-2
+        b[i] = 2 * coeff[1] * h^2
+    end
+    
+    # Com excecao do inicio e final, que possuem os limites ja conhecidos
+    b[1] -= yi * (1 + coeff[3] * h)
+    b[n-2] -= yf * (1 - coeff[3]) * h
+    
+    # Resolve e retorna
+    y_between = solve_system(A, b)
+    return [yi; y_between; yf]
+end
+function generic_bvp_matrix(n::Int64, b::Number, c::Number, h::Number)::Matrix{Number}
+    A = zeros(n,n)
+    # Manual no inicio
+    A[1, 1] = (-2 - 2 * b * h^2)
+    A[1, 2] = (1 - c * h)
+    
+    # Manual no final
+    A[n, n-1] = (1 + c * h)
+    A[n, n] = (-2 - 2 * b * h^2)
+    
+    # Monta a tridiagonal
+    for i = 2:n-1
+        A[i, i-1] = (1 + c * h)
+        A[i, i] = (-2 - 2 * b * h^2)
+        A[i, i+1] = (1 - c * h)
+    end
+    
+    return A
+end
+
+
+## 18, 19 & 20. Problema: Integração Numérica
+
+
+function numerical_integration(f::Function, a::Number, b::Number, n::Int64 = 1000)::Float64
+    # Calcula distancia entre cada ponto
+    h = (b-a)/n
+    
+    # Calcula a soma usando a formula extendida das areas
+    S = 0
+    xi = a
+    # O meio sera somado duas vezes, as pontas uma
+    for i = 1:n
+        S += f(xi)
+        xi += h
+        S += f(xi)
+    end
+    S *= h/2
+    
+    return S
+end
+
+
+function numerical_integration(f::Function, a::Number, b::Number, error::Number, M::Number)::Float64
+    n = ceil(sqrt((M * (b-a)^3) / (12 * error)))
+    return numerical_integration(f, a, b, n)
+end
+
+
+## 21. Derivada Numérica com uma função contínua
 
 #=
 Realiza a derivada continua usando diferenca para frente, para tras e centradas e retorna a derivada de uma funcao num ponto x
@@ -831,9 +956,12 @@ Retorno: A derivada no ponto x
 
 Especificacao: 
 =#
-function continuous_derivative(f, x, h, option=:front)
+function continuous_derivative(f::Function, x::Number, h::Number, option::Symbol = :center)::Float64
     @assert(option == :front || option == :back || option == :center, "Invalid option, possible options are: :front, :back, and :center")
     if(option == :front) return (f(x+h) - f(x))/h end
     if(option == :back) return (f(x) - f(x-h))/h end
     if(option == :center) return (f(x+h) - f(x-h))/2h end
 end
+
+## 22. Derivada Numérica com uma função discreta
+
