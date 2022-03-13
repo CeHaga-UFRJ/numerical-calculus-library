@@ -1176,7 +1176,7 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realiza a derivada de uma função contínua em um ponto
+Realiza a derivada continua usando diferenca para frente, para tras e centradas e retorna a derivada de uma funcao num ponto x
 
 Especificação
 ------------------------------
@@ -1204,7 +1204,7 @@ Retorno
 
 """
 function continuous_derivative(f::Function, x::Number, h::Number, option::Symbol = :center)::Float64
-    @assert(option == :front || option == :back || option == :center, "Opção inválida, possíveis opções são: :front, :back, and :center")
+    @assert(option == :front || option == :back || option == :center, "Opção inválida, possíveis opções são: :front, :back e :center")
     if(option == :front) return (f(x+h) - f(x))/h end
     if(option == :back) return (f(x) - f(x-h))/h end
     if(option == :center) return (f(x+h) - f(x-h))/2h end
