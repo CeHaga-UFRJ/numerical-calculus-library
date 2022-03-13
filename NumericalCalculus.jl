@@ -38,7 +38,7 @@ Parâmetros de entrada
 
 Retorno
 ------------------------------
-    y : Flotat64
+    y : Float64
         Retorna o valor aproximado de f(x)
 
     E : Float64
@@ -1224,7 +1224,7 @@ Especificação
 Parâmetros
 ------------------------------
     f : Vector
-        Vetor dos valores da funçãoa
+        Vetor dos valores da função
         
     x : Vector
         Vetor dos valores do domínio da função
