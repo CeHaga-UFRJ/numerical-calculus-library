@@ -13,7 +13,7 @@ Achar um valor aproximado de uma função com informações de derivadas utiliza
 
 Especificação
 ------------------------------
-|y - f(x)|<= E
+``|y - f(x)|<= E``
 
 
 Parâmetros de entrada
@@ -25,7 +25,7 @@ Parâmetros de entrada
         Ponto fixo que será calculado a aproximação
         Idealmente é próximo de x e é conhecida as derivadas no ponto
 
-    derivatives : Vector{Number}
+    derivatives : Vector
         Vetor com informações das derivadas no ponto a: f(a), f'(a), f''(a) ...
 
     M: Number
@@ -138,7 +138,7 @@ Encontrar zero de função (raiz) para calcular aproximação de valores numéri
 
 Especificação
 ------------------------------
-f(r)=0
+``f(r)=0``
 
 Parâmetros
 ------------------------------
@@ -186,10 +186,12 @@ Monta uma matriz de Vandermonde de dado grau
 
 Parâmetros
 ------------------------------
-    x: Vector{Number}
+    x: Vector
         Vetor usado como base
+
     qtd_rows: Number
         Quantidade de pontos
+
     degree: Number
         Grau do polinomio
 
@@ -209,15 +211,67 @@ function vandermonde(x::Vector, qtd_rows::Number, degree::Number)
     return V
 end
 
+@doc raw"""
+Objetivo
+------------------------------
+Realiza interpolação utilizando a matriz de vandermonde
+
+Parâmetros
+------------------------------
+    x: Vector
+        Vetor de x
+    y: Vector
+        Vetor de y
+        degree: Number
+        Grau do polinomio
+
+Retorno
+------------------------------
+    Retorno: Polinômio interpolador
+"""
 function vandermonde_interpolation(x::Vector, y::Vector, degree::Number)
 
     qtd_rows = length(y)
     
     V = vandermonde(x, qtd_rows, degree)
 
-    c = resolve_sistema(V, y)
+    c = solve_system(V, y)
     
     f(x) = sum(c[n+1]*x^n for n in 0:degree)
+    
+    return f
+end
+
+@doc raw"""
+Objetivo
+------------------------------
+Realiza interpolação utilizando o polinômio de Lagrange.
+É utilizado a partir de combinações lineares.
+
+Parâmetros
+------------------------------
+    x: Vector
+        Vetor de x
+    y: Vector
+        Vetor de y
+
+Retorno
+------------------------------
+    Retorno: Polinômio interpolador
+"""
+function lagrange_interpolation(x::Vector, y::Vector)
+    
+    # Ideia: montar combinações lineares ("peças de legos") 
+    # para que a gente consiga interpolar sem resolver um sistema linear
+    
+    n, = size(y)
+    
+    # Monta as peças de lego e soma no formato
+    # soma[numerador * (x-x[j]) / denominador *(x[i]-x[j])]
+    
+    f(var) = sum(
+        [y[j] * prod([var - x[i] for i = 1:n if i != j])/prod([x[j] - x[i] for i = 1:n if i != j ]) for j = 1:n]
+    )
     
     return f
 end
@@ -234,18 +288,26 @@ Para todo 1<=i<=n, F(x_i)=y_i
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
     method: Symbol, optional
-        Nome do método utilizado para a interpolação
+        Nome do método utilizado para a interpolação.
+        Valores possíveis: :vandermonde ou :lagrange
+        Método padrão: vandermonde
 
 Retorno
 ------------------------------
     function : function
         Retorna um polinômio com grau no máximo n-1 (tamanho do vetor de pontos - 1)
 
+Exceções
+------------------------------
+
+    AssertionError
+        Caso o método escolhido seja diferente de :vandermonde ou :lagrange
+
 """
-function interpolation(points::Vector, method::Symbol=:vandermond)
+function interpolation(points::Vector, method::Symbol=:vandermonde)
     
     size_points, = size(points)
     
@@ -259,14 +321,52 @@ function interpolation(points::Vector, method::Symbol=:vandermond)
         push!(y, point[2])
     end
     
+    @assert(method == :vandermonde || method == :lagrange, "Método de interpolação inválido, valores possíveis são: :vandermonde, ou :lagrange")
         
-    if method == :vandermond
+    if method == :vandermonde
         return vandermonde_interpolation(x, y, degree)
+    elseif method ==:lagrange
+        return lagrange_interpolation(x, y)
     end
 
 end
 
 ## 5 e 6. Problema: Regressão
+
+@doc raw"""
+Objetivo
+------------------------------
+Monta uma matriz genérica de funções passadas pelo usuário
+
+Parâmetros
+------------------------------
+    x: Vector
+        Vetor usado como base
+
+    qtd_rows: Number
+        Quantidade de pontos
+
+    degree: Number
+        Grau do polinomio
+
+    functions: Vector{function}
+        Conjunto de funções
+
+Retorno
+------------------------------
+    Retorno: Matriz aplicada em um ponto de função
+"""
+function functions_matrix(x::Vector, qtd_rows::Number, degree::Number, functions::Vector)
+    # Cria uma matriz vazia 
+    V = zeros(qtd_rows, degree+1)
+    
+    # Para cada coluna adiciona uma potencia de u e multiplica pela função
+    for i = 1:degree+1
+         V[:, i] = functions[i].(x)
+    end
+    
+    return V
+end
 
 @doc raw"""
 Objetivo
@@ -280,7 +380,7 @@ Para todo 1<=i<=n, F(x_i) aproximadamente y_i
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
     degree : Int64
         Grau da interpolação
@@ -306,13 +406,18 @@ function linear_regression(points::Vector, degree::Int64, functions=nothing)
     
     qtd_rows = length(y)
     
-    V = vandermonde(x,qtd_rows,degree)
-    
-    c = minimos_quadrados(V,y)
-    
     if functions == nothing
+
+        V = vandermonde(x,qtd_rows,degree)
+        c =  least_squares(V,y)
+
         return lr(x) = sum(c[n+1]*x^n for n in 0:degree) # linear regression
+
     else
+
+        V = functions_matrix(x,qtd_rows,degree,functions)
+        c =  least_squares(V,y)
+
         return lrg(x) = sum(c[n+1]*functions[n+1](x) for n in 0:degree) # linear regression generalized
     end
 end
@@ -331,17 +436,17 @@ Realizar a regressão com coeficientes não lineares do modelo exponencial
 Especificação
 ------------------------------
 Para todo 1<=i<=n, F(x_i) aproximadamente y_i
-Calculada com a linearização da forma ln(y) = ln(c1) + c2*x
+Calculada com a linearização da forma ``ln(y) = ln(c1) + c2*x``
 
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
 Retorno
 ------------------------------
     function : function
-        Retorna uma função com o modelo da forma y = c1*e^(c2*x)
+        Retorna uma função com o modelo da forma ``y = c1*e^(c2*x)``
 
 """
 function exponential_regression(points::Vector)
@@ -368,7 +473,7 @@ function exponential_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= V\y_barra # TODO: trocar
+    c_barra= solve_system(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -391,17 +496,17 @@ Realizar a regressão com coeficientes não lineares do modelo de potência
 Especificação
 ------------------------------
 Para todo 1<=i<=n, F(x_i) aproximadamente y_i
-Calculada com a linearização da forma ln(y) = ln(c1) + c2*ln(x)
+Calculada com a linearização da forma ``ln(y) = ln(c1) + c2*ln(x)``
 
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
 Retorno
 ------------------------------
     function : function
-        Retorna uma função com o modelo da forma y = c1*x^(c2)
+        Retorna uma função com o modelo da forma ``y = c1*x^(c2)``
 
 """
 function potency_regression(points::Vector)
@@ -428,7 +533,7 @@ function potency_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= V\y_barra # TODO: trocar
+    c_barra= solve_system(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -451,18 +556,18 @@ Realizar a regressão com coeficientes não lineares do modelo geométrico
 
 Especificação
 ------------------------------
-Para todo 1<=i<=n, F(x_i) aproximadamente y_i
-Calculada com a linearização da forma 1/y = c1 + c2*x
+Para todo ``1<=i<=n, F(x_i)`` aproximadamente y_i
+Calculada com a linearização da forma ``1/y = c1 + c2*x``
 
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
 Retorno
 ------------------------------
     function : function
-        Retorna uma função com o modelo da forma y = 1/(c1 + c2*x)
+        Retorna uma função com o modelo da forma ``y = 1/(c1 + c2*x)``
 
 """
 function geometric_regression(points::Vector)
@@ -491,7 +596,7 @@ function geometric_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= V\y_barra # TODO: trocar
+    c_barra= solve_system(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -514,12 +619,12 @@ Realiza a interpolacao 2D (bilinear) dado 4 pontos geométricos e suas respectiv
 
 Especificação
 ------------------------------
-Para todo 1<=i<=n, F(x_i,y_j)=zij
+Para todo ``1<=i<=n, F(x_i,y_j)=zij``
 
 Parâmetros
 ------------------------------
     points : Vector{Tuple{Number, Number}}
-        Vetor com 2 coordenadas (x,y). Formato: [(x1, y1), (x2,y2)]
+        Vetor com 2 coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
     z : Vector{Float64}
         Vetor com alturas 
@@ -561,6 +666,10 @@ Objetivo
 ----------
 Calcular a norma de um vetor.
 
+Especificação
+------------------------------
+``z=\sqrt{v_1^2 + v_2^2 + ... + v_n^2}``
+
 Parâmetros
 ----------
     v : Vector{Float64}
@@ -589,6 +698,10 @@ Aproximar a solução do sistema Ax=b utilizando o método de mínimos quadrados
 
 Dado uma matriz densa mxn (m>n) A e um vetor b resolve o sistema A’Ax=A’b onde Ax* aproximadamente b ( x*=argmin ||Ax-b|| )
 
+Especificação
+------------------------------
+``Ax* \approx b ( x*=argmin ||Ax-b|| )``
+
 Parâmetros
 ----------
     A : Matrix{Float64}
@@ -614,6 +727,10 @@ end
 Objetivo
 ----------
 Resolver um sistema Ax = b onde A eh uma matriz nxn e b uma matriz nx1 utilizando decomposição LU.
+
+Especificação
+------------------------------
+``Ax=b``
 
 Parâmetros
 ----------
@@ -644,30 +761,34 @@ end
 @doc raw"""
 Objetivo
 ----------
-Resolver um sistema Ax = y onde A eh uma matriz triangular superior e y uma matriz nx1
+Resolver um sistema Ux = b onde U eh uma matriz triangular superior e b uma matriz nx1
+
+Especificação
+------------------------------
+``Ux=b``
 
 Parâmetros
 ----------
-    A : Matrix{Float64}
+    U : Matrix{Float64}
         Recebe uma matriz triangular superior no formato (n,n)
 
-    y : Vector{Float64}
-        Um vetor tal que Ax=y
+    b : Vector{Float64}
+        Um vetor tal que Ax=b
 
 Retorno
 ----------
     x : Vector{Float64}
-        Retorna a solução do sistema Ax=y
+        Retorna a solução do sistema Ax=b
 
 """
-function upper_triangular_solve(A::Matrix{Float64}, y::Vector{Float64})
-    # Podemos pegar o tamanho de y, pois eh o mesmo que A
-    n = length(y)   
+function upper_triangular_solve(U::Matrix{Float64}, b::Vector{Float64})
+    # Podemos pegar o tamanho de b, pois eh o mesmo que U
+    n = length(b)   
     x = zeros(n)
     
     # Na triangular superior, comecamos de baixo para cima, substituindo as variaveis anteriores nas equacoes
     for i = n:(-1):1
-        x[i] = (y[i] - sum([A[i, k] * x[k] for k = i+1:n])) / A[i,i] 
+        x[i] = (b[i] - sum([U[i, k] * x[k] for k = i+1:n])) / U[i,i] 
     end
     
     return x
@@ -679,30 +800,34 @@ end
 @doc raw"""
 Objetivo
 ----------
-Resolver um sistema Ax = y onde A eh uma matriz triangular inferior e y uma matriz nx1
+Resolver um sistema Lx = b onde L eh uma matriz triangular inferior e b uma matriz nx1
+
+Especificação
+------------------------------
+``Lx=b``
 
 Parâmetros
 ----------
-    A : Matrix{Float64}
+    L : Matrix{Float64}
         Recebe uma Matrix triangular inferior no formato (n,n)
 
-    y : Vector{Float64}
-        Um vetor tal que Ax=y
+    b : Vector{Float64}
+        Um vetor tal que Lx=b
 
 Retorno
 ----------
     x : Vector{Float64}
-        Retorna a solução do sistema Ax=y
+        Retorna a solução do sistema Lx=b
 
 """
-function lower_triangular_solve(A::Matrix{Float64}, y::Vector{Float64})
-    # Podemos pegar o tamanho de y, pois eh o mesmo que A
-    n = length(y)
+function lower_triangular_solve(L::Matrix{Float64}, b::Vector{Float64})
+    # Podemos pegar o tamanho de b, pois eh o mesmo que L
+    n = length(b)
     x = zeros(n)
     
     # Na triangular inferior, comecamos de cima para baixo, substituindo as variaveis anteriores nas equacoes
     for i = 1:n
-        x[i] = (y[i] - sum([A[i, k] * x[k] for k = 1:i-1])) / A[i,i] 
+        x[i] = (b[i] - sum([L[i, k] * x[k] for k = 1:i-1])) / L[i,i] 
     end
     
     return x
@@ -714,28 +839,32 @@ end
 @doc raw"""
 Objetivo
 ----------
-Resolver um sistema Ax = y onde A eh uma matriz triangular inferior e y uma matriz nx1
+Resolver um sistema Dx = b onde D eh uma matriz diagonal e b uma matriz nx1
+
+Especificação
+------------------------------
+``Dx=b``
 
 Parâmetros
 ----------
-    A : Matrix{Float64}
-        Recebe uma Matrix triangular inferior no formato (n,n)
+    D : Matrix{Float64}
+        Recebe uma Matrix diagonal no formato (n,n)
 
-    y : Vector{Float64}
-        Um vetor tal que Ax=y
+    b : Vector{Float64}
+        Um vetor tal que Dx=b
 
 Retorno
 ----------
     x : Vector{Float64}
-        Retorna a solução do sistema Ax=y
+        Retorna a solução do sistema Dx=b
 
 """
-function solve_diagonal(A::Matrix{Float64}, y::Vector{Float64})
-    # Podemos pegar o tamanho de y, pois eh o mesmo que A
-    n = length(y)
+function solve_diagonal(D::Matrix{Float64}, b::Vector{Float64})
+    # Podemos pegar o tamanho de b, pois eh o mesmo que D
+    n = length(b)
     
     # Divide o lado direito pelo coeficiente de cada variavel
-    x = [y[i]/A[i,i] for i = 1:n]
+    x = [b[i]/D[i,i] for i = 1:n]
     
     return x
 end
@@ -748,6 +877,10 @@ Objetivo
 ----------
 Achar a inversa de uma matriz A utilizando o método da decomposição LU.
 
+Especificação
+------------------------------
+``A\cdotB=B\cdotA=I``
+
 Parâmetros
 ----------
     A : Matrix{Float64}
@@ -755,17 +888,17 @@ Parâmetros
 
 Retorno
 ----------
-    inv_A : Matrix{Float64}
+    B : Matrix{Float64}
         Retorna a inversa da matriz A
 
 """
 function inverse_LU(A::Matrix{Float64})
     # Decompoe em LU
-    L, U = decomposicao_lu(A)
+    L, U = lu_decomposition(A)
     n, = size(A)
     
     # Inicializa a inversa
-    inv_A = zeros(n,n)
+    B = zeros(n,n)
     
     # Para cada coluna
     for i = 1:n
@@ -774,14 +907,14 @@ function inverse_LU(A::Matrix{Float64})
         y[i] = 1
         
         # Resolve o sistema para a coluna i
-        Y = resolve_triangular_inferior(L, y)
-        x = resolve_triangular_superior(U, Y)
+        Y = lower_triangular_solve(L, y)
+        x = upper_triangular_solve(U, Y)
         
         # Substitui a coluna i da inversa
-        inv_A[:,i] = x
+        B[:,i] = x
     end
     
-    return inv_A
+    return B
 end
 
 ## 16. Problema: Decomposição LU
@@ -793,11 +926,11 @@ Realizar a decomposição LU
 
 Especificação
 ------------------------------
-A = LU
+``A = LU``
 
 Parâmetros
 ------------------------------
-    A : Matrix{Number}
+    A : Matrix
         Matriz no formato (n,n)
 
 Retorno
@@ -809,7 +942,7 @@ Retorno
         Matriz triangular superior
 
 """
-function lu_decomposition(A::Matrix{Number})::Tuple{Matrix{Float64},Matrix{Float64}}
+function lu_decomposition(A::Matrix)::Tuple{Matrix{Float64},Matrix{Float64}}
     # Podemos salvar apenas um tamanho pois sao o mesmo
     n, = size(A)
 
@@ -843,7 +976,7 @@ Especificação
 
 Parâmetros
 ------------------------------
-    coeff : Vector{Number}
+    coeff : Vector
         Coeficientes da segunda derivada
         
     xi : Number
@@ -868,7 +1001,7 @@ Retorno
         Vetor de pontos internos entre xi e xf
 
 """
-function generic_bvp(coeff::Vector{Number}, xi::Number, xf::Number, yi::Number, yf::Number, n::Int64)::Vector{Float64}
+function generic_bvp(coeff::Vector, xi::Number, xf::Number, yi::Number, yf::Number, n::Int64)::Vector{Float64}
     # Calcula o tamanho do intervalo
     h = (xf - xi)/(n-1)
     
@@ -888,7 +1021,7 @@ function generic_bvp(coeff::Vector{Number}, xi::Number, xf::Number, yi::Number, 
     y_between = solve_system(A, b)
     return [yi; y_between; yf]
 end
-function generic_bvp_matrix(n::Int64, b::Number, c::Number, h::Number)::Matrix{Number}
+function generic_bvp_matrix(n::Int64, b::Number, c::Number, h::Number)::Matrix
     A = zeros(n,n)
     # Manual no inicio
     A[1, 1] = (-2 - 2 * b * h^2)
@@ -914,7 +1047,7 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realiza a integral numérica 
+Realiza a integral numérica com um determinado número de intervalos
 
 Especificação
 ------------------------------
@@ -932,7 +1065,7 @@ Parâmetros
         Limite superior da integral
 
     n : Number
-        Número de divisões
+        Número de intervalos
         
 
 Retorno
@@ -960,13 +1093,73 @@ function numerical_integration(f::Function, a::Number, b::Number, n::Int64 = 100
 end
 
 @doc raw"""
-teste2
+Objetivo
+------------------------------
+Realiza a integral numérica com erro máximo
+
+Especificação
+------------------------------
+``\left| S - \int_a^b f(x)dx \right| < \text{erro}``
+
+Parâmetros
+------------------------------
+    f : Function
+        Função a ser derivada
+        
+    a : Number
+        Limite inferior da integral
+
+    b : Number
+        Limite superior da integral
+
+    error : Number
+        Erro máximo
+
+    M : Number
+        Limite superior para a segunda derivada
+        
+
+Retorno
+------------------------------
+    S : Float64
+        Aproximação da integral
+
 """
 function numerical_integration(f::Function, a::Number, b::Number, error::Number, M::Number)::Float64
     n = ceil(sqrt((M * (b-a)^3) / (12 * error)))
     return numerical_integration(f, a, b, n)
 end
 
+@doc raw"""
+Objetivo
+------------------------------
+Realiza a integral dupla numérica com um determinado número de intervalos
+
+Especificação
+------------------------------
+``S \approx \int_a^b \int_{h(x)}^{g(x)} f(x,y) dx dy``
+
+Parâmetros
+------------------------------
+    f : Function
+        Função a ser derivada
+        
+    a : Number
+        Limite inferior da integral
+
+    b : Number
+        Limite superior da integral
+
+    n : Number
+        Número de intervalos
+        
+
+Retorno
+------------------------------
+    S : Float64
+        Aproximação da integral
+
+"""
 function numerical_integration(f::Function, g::Function, h::Function, a::Number, b::Number, n::Int64)::Float64
     # Calcula a integral para um y especifico
     function outer_integral(y)
@@ -980,25 +1173,38 @@ end
 
 ## 21. Derivada Numérica com uma função contínua
 
-#=
-Realiza a derivada continua usando diferenca para frente, para tras e centradas e retorna a derivada de uma funcao num ponto x
+@doc raw"""
+Objetivo
+------------------------------
+Realiza a derivada de uma função contínua em um ponto
 
-Problema: Derivada continua
+Especificação
+------------------------------
+``dx \approx f'(x)``
 
-f: Funcao a ser derivada
-x: Ponto a ser calculada a derivada
-h: Tamanho dos intervalos a serem percorridos
-option:
- - :front, para usar diferenca para frente (Padrao caso nao entre)
- - :back, para usar diferenca para tras
- - :center, para usar diferenca centrada
+Parâmetros
+------------------------------
+    f : Function
+        Função a ser derivada
+        
+    x : Number
+        Ponto da derivação
 
-Retorno: A derivada no ponto x
+    h : Number
+        Tamanho do intervalo
 
-Especificacao: 
-=#
+    option : Symbol, {:front, :back, :center}, padrão :center
+        Estratégia de derivação
+        
+
+Retorno
+------------------------------
+    dx : Float64
+        Derivada no ponto x
+
+"""
 function continuous_derivative(f::Function, x::Number, h::Number, option::Symbol = :center)::Float64
-    @assert(option == :front || option == :back || option == :center, "Invalid option, possible options are: :front, :back, and :center")
+    @assert(option == :front || option == :back || option == :center, "Opção inválida, possíveis opções são: :front, :back, and :center")
     if(option == :front) return (f(x+h) - f(x))/h end
     if(option == :back) return (f(x) - f(x-h))/h end
     if(option == :center) return (f(x+h) - f(x-h))/2h end
@@ -1006,7 +1212,37 @@ end
 
 ## 22. Derivada Numérica com uma função discreta
 
-function discrete_derivative(f, x, degree, option = :center)
+@doc raw"""
+Objetivo
+------------------------------
+Realiza a derivada de uma função discreta em um intervalo
+
+Especificação
+------------------------------
+``fy(x_i) \approx y'(x_i)``
+
+Parâmetros
+------------------------------
+    f : Vector
+        Vetor dos valores da funçãoa
+        
+    x : Vector
+        Vetor dos valores do domínio da função
+
+    degree : Int64
+        Grau da derivação
+
+    option : Symbol, {:front, :back, :center}, padrão :center
+        Estratégia de derivação
+        
+
+Retorno
+------------------------------
+    fy : Vector{Float64}
+        Vetor das derivadas em cada ponto do domínio
+
+"""
+function discrete_derivative(f::Vector, x::Vector, degree::Int64, option::Symbol = :center)::Vector
     n = length(f)
     fy = copy(f)
     for k = 1:degree
