@@ -1,7 +1,3 @@
-#=
-  Implementacao de varios metodos de calcnum ... agora estou enrolando falando da nossa biblioteca
-=#
-
 using LinearAlgebra
 
 ## 2. Problema: Achar um valor aproximado de uma função com informações de derivadas
@@ -31,7 +27,7 @@ Parâmetros de entrada
     M: Number
         Maior valor da n-derivada no intervalo (teto)
 
-    n: Int64, optional
+    n: Int64, default 2
         Número de termos do polinômio de Taylor
         Se nenhum valor for passado será calculado o polinômio de ordem 2
 
@@ -49,7 +45,7 @@ Exceções
 
     AssertionError
         Caso a quantidade de derivadas no vetor seja insuficiente para realizar o 
-        cálculo, levanta exeção de domínio
+        cálculo, levanta exceção de domínio
 
 """
 function value_approximation(x::Number, a::Number, derivatives::Vector, M::Number, n::Int64=2)
@@ -80,7 +76,7 @@ Retorna um aviso caso o intervalo passado pelo usuário não possua sinais troca
 
 Especificação
 ------------------------------
-f(r)=0 e |x-r| <= erro
+``f(r)=0`` e ``|x-r| <= erro``
 
 
 Parâmetros
@@ -148,16 +144,12 @@ Parâmetros
     derivative: Function
         Derivada da função f
 
-    qtty_iterations: Int64, optional
-        Quantidade de interações para ser utilizada no método 
-        Caso nenhum valor seja passado será calculado 10 iterações
-
     kick: Float64
         Chute da função inicial para começar a aplicar o método
 
-    method: String, optional
-        Método que será aplicado a aproximação da raiz da função (:bisecion ou :newton)
-        Caso nenhum método seja escolhido o padrão é o da Bisseção
+    qtty_iterations: Int64, default 10
+        Quantidade de interações para ser utilizada no método 
+        Caso nenhum valor seja passado será calculado 10 iterações
 
 Retorno
 ------------------------------
@@ -182,18 +174,18 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Monta uma matriz de Vandermonde de dado grau
+Monta uma matriz de Vandermonde (matriz de potência)
 
 Parâmetros
 ------------------------------
     x: Vector
-        Vetor usado como base
+        Vetor usado como base da potência
 
     qtd_rows: Number
-        Quantidade de pontos
+        Quantidade de linhas
 
     degree: Number
-        Grau do polinomio
+        Grau do polinômio
 
 Retorno
 ------------------------------
@@ -220,9 +212,11 @@ Parâmetros
 ------------------------------
     x: Vector
         Vetor de x
+
     y: Vector
         Vetor de y
-        degree: Number
+
+    degree: Number
         Grau do polinomio
 
 Retorno
@@ -234,7 +228,6 @@ function vandermonde_interpolation(x::Vector, y::Vector, degree::Number)
     qtd_rows = length(y)
     
     V = vandermonde(x, qtd_rows, degree)
-
     c = solve_system(V, y)
     
     f(x) = sum(c[n+1]*x^n for n in 0:degree)
@@ -252,6 +245,7 @@ Parâmetros
 ------------------------------
     x: Vector
         Vetor de x
+
     y: Vector
         Vetor de y
 
@@ -290,10 +284,9 @@ Parâmetros
     points : Vector{Tuple{Number, Number}}
         Vetor com coordenadas (x,y). Formato: ``[(x1, y1), (x2,y2)]``
 
-    method: Symbol, optional
+    method: Symbol, {:vandermonde, :lagrange}, padrão :vandermonde
         Nome do método utilizado para a interpolação.
-        Valores possíveis: :vandermonde ou :lagrange
-        Método padrão: vandermonde
+
 
 Retorno
 ------------------------------
@@ -344,17 +337,17 @@ Parâmetros
         Vetor usado como base
 
     qtd_rows: Number
-        Quantidade de pontos
+        Quantidade de linhas
 
     degree: Number
-        Grau do polinomio
+        Grau do polinômio
 
     functions: Vector{function}
         Conjunto de funções
 
 Retorno
 ------------------------------
-    Retorno: Matriz aplicada em um ponto de função
+    Retorno: Matriz onde as funções estão aplicadas em cada ponto x
 """
 function functions_matrix(x::Vector, qtd_rows::Number, degree::Number, functions::Vector)
     # Cria uma matriz vazia 
@@ -375,7 +368,7 @@ Realizar a regressão com coeficientes lineares
 
 Especificação
 ------------------------------
-Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Para todo ``1<=i<=n, F(x_i)`` aproximadamente ``y_i``
 
 Parâmetros
 ------------------------------
@@ -385,7 +378,7 @@ Parâmetros
     degree : Int64
         Grau da interpolação
 
-    functions: Vector{function}, optional
+    functions: Vector{function}, default nothing
         Caso esse vetor for passado, será calculado a regressão generalizada
 
 Retorno
@@ -407,18 +400,20 @@ function linear_regression(points::Vector, degree::Int64, functions=nothing)
     qtd_rows = length(y)
     
     if functions == nothing
-
+        # linear regression
+        
         V = vandermonde(x,qtd_rows,degree)
         c =  least_squares(V,y)
 
-        return lr(x) = sum(c[n+1]*x^n for n in 0:degree) # linear regression
+        return lr(x) = sum(c[n+1]*x^n for n in 0:degree) 
 
     else
+        # linear regression generalized
 
         V = functions_matrix(x,qtd_rows,degree,functions)
         c =  least_squares(V,y)
 
-        return lrg(x) = sum(c[n+1]*functions[n+1](x) for n in 0:degree) # linear regression generalized
+        return lrg(x) = sum(c[n+1]*functions[n+1](x) for n in 0:degree)
     end
 end
 
@@ -431,11 +426,11 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realizar a regressão com coeficientes não lineares do modelo exponencial
+Realizar a regressão com coeficientes não lineares para o modelo exponencial
 
 Especificação
 ------------------------------
-Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Para todo ``1<=i<=n, F(x_i)`` aproximadamente ``y_i``
 Calculada com a linearização da forma ``ln(y) = ln(c1) + c2*x``
 
 Parâmetros
@@ -491,11 +486,11 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realizar a regressão com coeficientes não lineares do modelo de potência
+Realizar a regressão com coeficientes não lineares para o modelo de potência
 
 Especificação
 ------------------------------
-Para todo 1<=i<=n, F(x_i) aproximadamente y_i
+Para todo ``1<=i<=n, F(x_i)`` aproximadamente ``y_i``
 Calculada com a linearização da forma ``ln(y) = ln(c1) + c2*ln(x)``
 
 Parâmetros
@@ -552,7 +547,7 @@ end
 @doc raw"""
 Objetivo
 ------------------------------
-Realizar a regressão com coeficientes não lineares do modelo geométrico
+Realizar a regressão com coeficientes não lineares para o modelo geométrico
 
 Especificação
 ------------------------------
@@ -663,7 +658,7 @@ end
 
 @doc raw"""
 Objetivo
-----------
+------------------------------
 Calcular a norma de um vetor.
 
 Especificação
@@ -671,12 +666,12 @@ Especificação
 ``z=\sqrt{v_1^2 + v_2^2 + ... + v_n^2}``
 
 Parâmetros
-----------
+------------------------------
     v : Vector{Float64}
         Recebe um vetor
 
 Retorno
-----------
+------------------------------
     z : Float64
         Retorna a norma do vetor v
 
@@ -693,8 +688,8 @@ end
 
 @doc raw"""
 Objetivo
-----------
-Aproximar a solução do sistema Ax=b utilizando o método de mínimos quadrados.
+------------------------------
+Aproximar a solução do sistema Ax=b utilizando o método de mínimos quadrados
 
 Dado uma matriz densa mxn (m>n) A e um vetor b resolve o sistema A’Ax=A’b onde Ax* aproximadamente b ( x*=argmin ||Ax-b|| )
 
@@ -703,7 +698,7 @@ Especificação
 ``Ax* \approx b ( x*=argmin ||Ax-b|| )``
 
 Parâmetros
-----------
+------------------------------
     A : Matrix{Float64}
         Recebe uma matriz densa
 
@@ -711,7 +706,7 @@ Parâmetros
         Um vetor b tal que Ax=b
 
 Retorno
-----------
+------------------------------
     x : Vector{Float64}
         Retorna uma aproximação da solução do sistema A’Ax=A’b
 
@@ -725,15 +720,15 @@ end
 
 @doc raw"""
 Objetivo
-----------
-Resolver um sistema Ax = b onde A eh uma matriz nxn e b uma matriz nx1 utilizando decomposição LU.
+------------------------------
+Resolver um sistema Ax = b onde A é uma matriz nxn e b uma matriz nx1 utilizando decomposição LU
 
 Especificação
 ------------------------------
 ``Ax=b``
 
 Parâmetros
-----------
+------------------------------
     A : Matrix{Float64}
         Recebe uma matriz nxn
 
@@ -741,14 +736,14 @@ Parâmetros
         Um vetor tal que Ax=b
 
 Retorno
-----------
+------------------------------
     x : Vector{Float64}
         Retorna a solução do sistema Ax=b
 
 """
 function solve_system(A::Matrix{Float64}, b::Vector{Float64})
     n,m = size(A)
-    @assert(n == m, string("Matrix must be a square. Received a (",n,",",m,")"))
+    @assert(n == m, string("Matriz deve ser quadrada. Matriz recebida (",n,",",m,")"))
     L, U = lu_decomposition(A) # Faz a decomposição LU
     Y = lower_triangular_solve(L, b) # Resolve o sistema LY=b
     x = upper_triangular_solve(U, Y) # Resolve o sistema Ux=Y
@@ -760,15 +755,15 @@ end
 
 @doc raw"""
 Objetivo
-----------
-Resolver um sistema Ux = b onde U eh uma matriz triangular superior e b uma matriz nx1
+------------------------------
+Resolver um sistema Ux = b onde U é uma matriz triangular superior e b uma matriz nx1
 
 Especificação
 ------------------------------
 ``Ux=b``
 
 Parâmetros
-----------
+------------------------------
     U : Matrix{Float64}
         Recebe uma matriz triangular superior no formato (n,n)
 
@@ -776,7 +771,7 @@ Parâmetros
         Um vetor tal que Ax=b
 
 Retorno
-----------
+------------------------------
     x : Vector{Float64}
         Retorna a solução do sistema Ax=b
 
@@ -799,15 +794,15 @@ end
 
 @doc raw"""
 Objetivo
-----------
-Resolver um sistema Lx = b onde L eh uma matriz triangular inferior e b uma matriz nx1
+------------------------------
+Resolver um sistema Lx = b onde L é uma matriz triangular inferior e b uma matriz nx1
 
 Especificação
 ------------------------------
 ``Lx=b``
 
 Parâmetros
-----------
+------------------------------
     L : Matrix{Float64}
         Recebe uma Matrix triangular inferior no formato (n,n)
 
@@ -815,7 +810,7 @@ Parâmetros
         Um vetor tal que Lx=b
 
 Retorno
-----------
+------------------------------
     x : Vector{Float64}
         Retorna a solução do sistema Lx=b
 
@@ -838,15 +833,15 @@ end
 
 @doc raw"""
 Objetivo
-----------
-Resolver um sistema Dx = b onde D eh uma matriz diagonal e b uma matriz nx1
+------------------------------
+Resolver um sistema Dx = b onde D é uma matriz diagonal e b uma matriz nx1
 
 Especificação
 ------------------------------
 ``Dx=b``
 
 Parâmetros
-----------
+------------------------------
     D : Matrix{Float64}
         Recebe uma Matrix diagonal no formato (n,n)
 
@@ -854,7 +849,7 @@ Parâmetros
         Um vetor tal que Dx=b
 
 Retorno
-----------
+------------------------------
     x : Vector{Float64}
         Retorna a solução do sistema Dx=b
 
@@ -874,7 +869,7 @@ end
 
 @doc raw"""
 Objetivo
-----------
+------------------------------
 Achar a inversa de uma matriz A utilizando o método da decomposição LU.
 
 Especificação
@@ -882,12 +877,12 @@ Especificação
 ``A\cdotB=B\cdotA=I``
 
 Parâmetros
-----------
+------------------------------
     A : Matrix{Float64}
         Recebe uma Matriz no formato (n,n)
 
 Retorno
-----------
+------------------------------
     B : Matrix{Float64}
         Retorna a inversa da matriz A
 
