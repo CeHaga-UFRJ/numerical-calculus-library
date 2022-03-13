@@ -384,7 +384,7 @@ Parâmetros
 Retorno
 ------------------------------
     function : function
-        Retorna uma função no seu formato linear tradicional ou generalizada (com multiplifcação de funções)
+        Retorna uma função no seu formato linear tradicional ou generalizada (com multiplicação de funções)
 
 """
 function linear_regression(points::Vector, degree::Int64, functions=nothing)
@@ -468,7 +468,7 @@ function exponential_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= solve_system(V, y_barra)
+    c_barra= least_squares(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -528,7 +528,7 @@ function potency_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= solve_system(V, y_barra)
+    c_barra= least_squares(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -591,7 +591,7 @@ function geometric_regression(points::Vector)
     qtd_rows = length(y)
     V = vandermonde(x_barra,qtd_rows,1)
     
-    c_barra= solve_system(V, y_barra)
+    c_barra= least_squares(V, y_barra)
     
     # Etapa 4: troca de variável (modelo)
 
@@ -874,7 +874,7 @@ Achar a inversa de uma matriz A utilizando o método da decomposição LU.
 
 Especificação
 ------------------------------
-``A\cdotB=B\cdotA=I``
+``A \cdot B=B \cdot A=I``
 
 Parâmetros
 ------------------------------
@@ -1010,7 +1010,7 @@ function generic_bvp(coeff::Vector, xi::Number, xf::Number, yi::Number, yf::Numb
     
     # Com excecao do inicio e final, que possuem os limites ja conhecidos
     b[1] -= yi * (1 + coeff[3] * h)
-    b[n-2] -= yf * (1 - coeff[3]) * h
+    b[n-2] -= yf * (1 - coeff[3] * h)
     
     # Resolve e retorna
     y_between = solve_system(A, b)
@@ -1121,7 +1121,7 @@ Retorno
 
 """
 function numerical_integration(f::Function, a::Number, b::Number, error::Number, M::Number)::Float64
-    n = ceil(sqrt((M * (b-a)^3) / (12 * error)))
+    n = Int64(ceil(sqrt((M * (b-a)^3) / (12 * error))))
     return numerical_integration(f, a, b, n)
 end
 
